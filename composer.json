@@ -1,0 +1,39 @@
+{
+  "name": "warrior-php/console",
+  "type": "library",
+  "keywords": [
+    "WarriorPHP Console",
+    "warrior-php",
+    "console"
+  ],
+  "homepage": "https://warriorphp.com",
+  "license": "MIT",
+  "description": "WarriorPHP console",
+  "authors": [
+    {
+      "name": "warrior",
+      "email": "support@warriorphp.com",
+      "homepage": "https://warriorphp.com",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "support@warriorphp.com",
+    "issues": "https://github.com/warrior-php/console/issues",
+    "forum": "https://warrior-php/forum",
+    "wiki": "https://warrior-php/wiki",
+    "source": "https://github.com/warrior-php/console"
+  },
+  "require": {
+    "symfony/console": ">=5.0",
+    "doctrine/inflector": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "WarriorPHP\\Console\\": "src"
+    }
+  },
+  "require-dev": {
+    "workerman/webman": "^1.0"
+  }
+}
