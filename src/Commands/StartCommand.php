@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Warrior\Console\Commands;
 
+use Support\App;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -29,14 +30,14 @@ class StartCommand extends Command
      *
      * @var string
      */
-    protected static $defaultName = 'start';
+    protected static string $defaultName = 'start';
 
     /**
      * 命令描述
      *
      * @var string
      */
-    protected static $defaultDescription = 'Start worker in DEBUG mode. Use mode -d to start in DAEMON mode.';
+    protected static string $defaultDescription = 'Start worker in DEBUG mode. Use mode -d to start in DAEMON mode.';
 
     /**
      * 配置命令参数和选项
@@ -70,8 +71,8 @@ class StartCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // 如果存在 Support\App 类，则优先运行该类的 run 方法（可能是用户自定义启动流程）
-        if (class_exists(\Support\App::class)) {
-            \Support\App::run();
+        if (class_exists(App::class)) {
+            App::run();
             return self::SUCCESS;
         }
 

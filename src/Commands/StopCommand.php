@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Warrior\Console\Commands;
 
+use Support\App;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -30,14 +31,14 @@ class StopCommand extends Command
      *
      * @var string
      */
-    protected static $defaultName = 'stop';
+    protected static string $defaultName = 'stop';
 
     /**
      * 命令描述
      *
      * @var string
      */
-    protected static $defaultDescription = 'Stop worker. Use mode -g to stop gracefully.';
+    protected static string $defaultDescription = 'Stop worker. Use mode -g to stop gracefully.';
 
     /**
      * 配置命令选项
@@ -74,8 +75,8 @@ class StopCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // 如果用户定义的 Support\App 类存在，调用其 run 方法
-        if (class_exists(\Support\App::class)) {
-            \Support\App::run();
+        if (class_exists(App::class)) {
+            App::run();
             return self::SUCCESS;
         }
 

@@ -34,6 +34,7 @@
     }
   },
   "require-dev": {
-    "workerman/webman": "^1.0"
+    "workerman/webman": "^1.0",
+    "vlucas/phpdotenv": "^5.6"
   }
 }

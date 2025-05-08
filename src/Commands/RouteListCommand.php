@@ -25,14 +25,14 @@ class RouteListCommand extends Command
      *
      * @var string
      */
-    protected static $defaultName = 'route:list';
+    protected static string $defaultName = 'route:list';
 
     /**
      * 命令描述（用于在帮助信息中显示）
      *
      * @var string
      */
-    protected static $defaultDescription = 'Route list';
+    protected static string $defaultDescription = 'Route list';
 
     /**
      * 执行命令

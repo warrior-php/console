@@ -80,7 +80,7 @@ class Util
      *
      * @return string|false 找到的相对路径或完整路径，失败返回 false
      */
-    public static function guessPath(string $base_path, string $name, bool $return_full_path = false)
+    public static function guessPath(string $base_path, string $name, bool $return_full_path = false): bool|string
     {
         if (!is_dir($base_path)) {
             return false;

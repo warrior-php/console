@@ -21,10 +21,13 @@ class Install
      * 源路径与目标路径的映射关系
      * Path relations from plugin source to project destination
      *
-     * @var array<string, string>
+     * @var array
      */
-    protected static $pathRelation = [
-        'config' => 'config',
+    protected static array $pathRelation = [
+        'config' => [
+            'path'  => 'config',
+            'files' => ['console.php'],
+        ],
     ];
 
     /**
@@ -35,7 +38,7 @@ class Install
      */
     public static function install(): void
     {
-        // 拷贝 webman 启动文件
+        // 拷贝 warrior 启动文件
         copy(__DIR__ . "/warrior", base_path() . "/warrior");
         chmod(base_path() . "/warrior", 0755);
 
@@ -68,7 +71,9 @@ class Install
      */
     public static function installByRelation(): void
     {
-        foreach (static::$pathRelation as $source => $dest) {
+        foreach (static::$pathRelation as $source => $info) {
+            $dest = $info['path'];
+
             // 如果目标路径包含目录结构，确保其存在
             if ($pos = strrpos($dest, '/')) {
                 $parent_dir = base_path() . '/' . substr($dest, 0, $pos);
@@ -90,16 +95,23 @@ class Install
      */
     public static function uninstallByRelation(): void
     {
-        foreach (static::$pathRelation as $source => $dest) {
-            $path = base_path() . "/$dest";
+        foreach (static::$pathRelation as $info) {
+            $destPath = base_path() . '/' . $info['path'];
 
-            // 若目标不存在则跳过
-            if (!is_dir($path) && !is_file($path)) {
+            // 路径不是目录，跳过
+            if (!is_dir($destPath)) {
                 continue;
             }
 
-            // 执行目录删除
-            remove_dir($path);
+            // 删除指定文件
+            if (!empty($info['files'])) {
+                foreach ($info['files'] as $file) {
+                    $filePath = $destPath . '/' . $file;
+                    if (is_file($filePath)) {
+                        unlink($filePath);
+                    }
+                }
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Warrior\Console\Commands;
 
+use Support\App;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -30,14 +31,14 @@ class StatusCommand extends Command
      *
      * @var string
      */
-    protected static $defaultName = 'status';
+    protected static string $defaultName = 'status';
 
     /**
      * 命令描述
      *
      * @var string
      */
-    protected static $defaultDescription = 'Get worker status. Use mode -d to show live status.';
+    protected static string $defaultDescription = 'Get worker status. Use mode -d to show live status.';
 
     /**
      * 配置命令参数和选项
@@ -71,8 +72,8 @@ class StatusCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // 如果存在用户定义的 App 运行类，则执行它
-        if (class_exists(\Support\App::class)) {
-            \Support\App::run();
+        if (class_exists(App::class)) {
+            App::run();
             return self::SUCCESS;
         }
 

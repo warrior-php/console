@@ -32,7 +32,7 @@ class Application
      *
      * @return void
      */
-    public static function run()
+    public static function run(): void
     {
         // 设置运行时日志目录
         // Setup runtime log directory

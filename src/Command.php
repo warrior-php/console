@@ -36,7 +36,7 @@ class Command extends Application
      *
      * @return void
      */
-    public function installCommands($path, string $namspace = 'app\command'): void
+    public function installCommands(string $path, string $namspace = 'App\Commands'): void
     {
         // 递归扫描目录
         // Recursively scan the directory
@@ -47,7 +47,7 @@ class Command extends Application
             /** @var SplFileInfo $file */
             // 忽略以点号开头的文件（如 .DS_Store）
             // Skip hidden files (e.g., .DS_Store)
-            if (strpos($file->getFilename(), '.') === 0) {
+            if (str_starts_with($file->getFilename(), '.')) {
                 continue;
             }
 
