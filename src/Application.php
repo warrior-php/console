@@ -134,7 +134,7 @@ class Application
                 $app = new App(
                     $worker,
                     Container::instance(),
-                    Log::channel('default'),
+                    Log::channel(),
                     app_path(),
                     public_path()
                 );

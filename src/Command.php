@@ -38,7 +38,7 @@ class Command extends Application
      *
      * @return void
      */
-    public function installCommands($path, string $namespace = 'App\Console'): void
+    public function installCommands($path, string $namespace = 'App\\Core\\Command'): void
     {
         $dir_iterator = new RecursiveDirectoryIterator($path);
         $iterator = new RecursiveIteratorIterator($dir_iterator);
