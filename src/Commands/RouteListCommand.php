@@ -38,6 +38,7 @@ class RouteListCommand extends Command
 
     /**
      * 执行命令
+     *
      * 本方法在调用命令时被自动执行。
      * 其作用是收集所有已注册的路由信息并以表格形式输出。
      *
@@ -62,15 +63,7 @@ class RouteListCommand extends Command
                 $cb = $route->getCallback();
 
                 // 格式化回调函数的信息
-                if ($cb instanceof Closure) {
-                    $cb = 'Closure'; // 匿名函数
-                } elseif (is_array($cb)) {
-                    // 数组形式通常是控制器类方法
-                    $cb = json_encode($cb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                } else {
-                    // 其他格式（如字符串）
-                    $cb = var_export($cb, true);
-                }
+                $cbDisplay = $this->formatCallback($cb);
 
                 // 获取中间件信息（包括注解中间件）
                 $middlewares = $this->getMiddlewaresWithAnnotations($route, $cb);
@@ -79,7 +72,7 @@ class RouteListCommand extends Command
                 $rows[] = [
                     $route->getPath(), // 路由 URI
                     $method, // 请求方法
-                    $cb, // 回调函数
+                    $cbDisplay, // 回调函数
                     json_encode($middlewares ?: null, JSON_UNESCAPED_UNICODE), // 中间件列表
                     $route->getName(), // 路由名称（可选）
                 ];
@@ -97,9 +90,29 @@ class RouteListCommand extends Command
     }
 
     /**
+     * 格式化回调函数显示
+     *
+     * @param mixed $cb 回调函数
+     *
+     * @return string 格式化后的字符串
+     */
+    private function formatCallback(mixed $cb): string
+    {
+        if ($cb instanceof Closure) {
+            return 'Closure';
+        } elseif (is_array($cb)) {
+            return json_encode($cb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } elseif (is_string($cb)) {
+            return $cb;
+        } else {
+            return var_export($cb, true);
+        }
+    }
+
+    /**
      * 获取路由的中间件信息（包括注解中的中间件）
      *
-     * @param object $route    路由对象
+     * @param object $route 路由对象
      * @param mixed  $callback 路由回调
      *
      * @return array 中间件数组
@@ -114,44 +127,61 @@ class RouteListCommand extends Command
             $middlewares = array_merge($middlewares, $routeMiddlewares);
         }
 
-        // 2. 如果回调是控制器方法，检查类和方法上的注解中间件
+        // 2. 解析控制器和方法名
+        $controllerClass = null;
+        $method = null;
+
         if (is_array($callback) && count($callback) === 2) {
+            // 数组格式：[ControllerClass, method]
             [$controllerClass, $method] = $callback;
+        } elseif (is_string($callback) && strpos($callback, '@') !== false) {
+            // 字符串格式：ControllerClass@method
+            [$controllerClass, $method] = explode('@', $callback, 2);
+        } elseif (is_string($callback) && class_exists($callback)) {
+            // 字符串格式：只有类名（可能是 __invoke）
+            $controllerClass = $callback;
+            $method = '__invoke';
+        }
 
+        // 3. 如果成功解析出控制器类，检查注解
+        if ($controllerClass && is_string($controllerClass)) {
             try {
-                // 确保控制器类名是字符串
-                if (is_string($controllerClass)) {
-                    $reflectionClass = new ReflectionClass($controllerClass);
+                $reflectionClass = new ReflectionClass($controllerClass);
 
-                    // 检查类上的 Middleware 注解
-                    $classAttributes = $reflectionClass->getAttributes('support\annotation\Middleware');
-                    foreach ($classAttributes as $attribute) {
-                        $instance = $attribute->newInstance();
-                        if (isset($instance->middleware)) {
-                            $middlewareClass = is_array($instance->middleware)
-                                ? $instance->middleware
-                                : [$instance->middleware];
-                            $middlewares = array_merge($middlewares, $middlewareClass);
-                        }
+                // 检查类上的 Middleware 注解
+                $classAttributes = $reflectionClass->getAttributes('support\annotation\Middleware');
+                foreach ($classAttributes as $attribute) {
+                    $instance = $attribute->newInstance();
+                    // 尝试不同的属性名称
+                    $middlewareValue = $instance->middleware ?? $instance->value ?? null;
+                    if ($middlewareValue) {
+                        $middlewareClass = is_array($middlewareValue)
+                            ? $middlewareValue
+                            : [$middlewareValue];
+                        $middlewares = array_merge($middlewares, $middlewareClass);
                     }
+                }
 
-                    // 检查方法上的 Middleware 注解
-                    if (method_exists($controllerClass, $method)) {
-                        $reflectionMethod = $reflectionClass->getMethod($method);
-                        $methodAttributes = $reflectionMethod->getAttributes('support\annotation\Middleware');
-                        foreach ($methodAttributes as $attribute) {
-                            $instance = $attribute->newInstance();
-                            if (isset($instance->middleware)) {
-                                $middlewareClass = is_array($instance->middleware)
-                                    ? $instance->middleware
-                                    : [$instance->middleware];
-                                $middlewares = array_merge($middlewares, $middlewareClass);
-                            }
+                // 检查方法上的 Middleware 注解（如果有方法名）
+                if ($method && method_exists($controllerClass, $method)) {
+                    $reflectionMethod = $reflectionClass->getMethod($method);
+                    $methodAttributes = $reflectionMethod->getAttributes('support\annotation\Middleware');
+                    foreach ($methodAttributes as $attribute) {
+                        $instance = $attribute->newInstance();
+                        // 尝试不同的属性名称
+                        $middlewareValue = $instance->middleware ?? $instance->value ?? null;
+                        if ($middlewareValue) {
+                            $middlewareClass = is_array($middlewareValue)
+                                ? $middlewareValue
+                                : [$middlewareValue];
+                            $middlewares = array_merge($middlewares, $middlewareClass);
                         }
                     }
                 }
             } catch (\Exception $e) {
                 // 忽略反射异常，避免影响命令执行
+                // 可以在这里添加调试输出
+                // error_log("Reflection error for $controllerClass: " . $e->getMessage());
             }
         }
 
