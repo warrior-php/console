@@ -30,7 +30,7 @@ $cli->setName('Warrior Cli');
 $cli->installInternalCommands();
 
 // 自动安装应用目录中的命令
-if (is_dir($command_path = Util::guessPath(app_path(), '/Console', true))) {
+if (is_dir($command_path = Util::guessPath(app_path(), '\\Core\\Command', true))) {
     $cli->installCommands($command_path);
 }
 
