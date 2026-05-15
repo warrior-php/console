@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Warrior\Console\Commands;
 
 use Closure;
+use Exception;
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
@@ -62,21 +64,24 @@ class RouteListCommand extends Command
 
                 // 格式化回调函数的信息
                 if ($cb instanceof Closure) {
-                    $cb = 'Closure'; // 匿名函数
+                    $cbDisplay = 'Closure'; // 匿名函数
                 } elseif (is_array($cb)) {
                     // 数组形式通常是控制器类方法
-                    $cb = json_encode($cb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    $cbDisplay = json_encode($cb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 } else {
                     // 其他格式（如字符串）
-                    $cb = var_export($cb, true);
+                    $cbDisplay = var_export($cb, true);
                 }
+
+                // 收集中间件（包括注解中间件）
+                $middlewares = $this->collectMiddlewares($route, $cb);
 
                 // 将路由信息填入表格行中
                 $rows[] = [
                     $route->getPath(), // 路由 URI
                     $method, // 请求方法
-                    $cb, // 回调函数
-                    json_encode($route->getMiddleware() ?: null), // 中间件列表
+                    $cbDisplay, // 回调函数
+                    json_encode($middlewares ?: null, JSON_UNESCAPED_UNICODE), // 中间件列表
                     $route->getName(), // 路由名称（可选）
                 ];
             }
@@ -90,5 +95,101 @@ class RouteListCommand extends Command
 
         // 返回成功状态码
         return self::SUCCESS;
+    }
+
+    /**
+     * 收集中间件信息（包括路由设置的和注解中的）
+     *
+     * @param object $route    路由对象
+     * @param mixed  $callback 路由回调
+     *
+     * @return array 中间件数组
+     */
+    private function collectMiddlewares(object $route, mixed $callback): array
+    {
+        $middlewares = [];
+
+        // 1. 获取路由直接设置的中间件
+        $routeMiddlewares = $route->getMiddleware();
+        if (!empty($routeMiddlewares)) {
+            $middlewares = array_merge($middlewares, $routeMiddlewares);
+        }
+
+        // 2. 从注解中收集中间件
+        $annotationMiddlewares = $this->getAnnotationMiddlewares($callback);
+        if (!empty($annotationMiddlewares)) {
+            $middlewares = array_merge($middlewares, $annotationMiddlewares);
+        }
+
+        // 去重
+        return array_unique($middlewares);
+    }
+
+    /**
+     * 从注解中获取中间件
+     *
+     * @param mixed $callback 路由回调
+     *
+     * @return array 中间件数组
+     */
+    private function getAnnotationMiddlewares(mixed $callback): array
+    {
+        $middlewares = [];
+
+        // 解析控制器类名
+        $controllerClass = null;
+
+        if (is_array($callback) && count($callback) === 2) {
+            [$controllerClass,] = $callback;
+        } elseif (is_string($callback)) {
+            if (str_contains($callback, '@')) {
+                [$controllerClass,] = explode('@', $callback, 2);
+            } elseif (class_exists($callback)) {
+                $controllerClass = $callback;
+            }
+        }
+
+        // 如果无法解析控制器类，返回空数组
+        if (!$controllerClass || !is_string($controllerClass) || !class_exists($controllerClass)) {
+            return [];
+        }
+
+        try {
+            // 遍历类继承链，收集所有 Middleware 注解
+            $reflectionClass = new ReflectionClass($controllerClass);
+            $currentClass = $reflectionClass;
+
+            while ($currentClass) {
+                // 检查当前类的所有属性
+                $attributes = $currentClass->getAttributes();
+
+                foreach ($attributes as $attribute) {
+                    // 只处理 Middleware 注解
+                    if ($attribute->getName() === 'support\annotation\Middleware') {
+                        $arguments = $attribute->getArguments();
+
+                        // 直接从参数中提取中间件类名
+                        foreach ($arguments as $arg) {
+                            if (is_string($arg)) {
+                                $middlewares[] = $arg;
+                            } elseif (is_array($arg)) {
+                                foreach ($arg as $item) {
+                                    if (is_string($item)) {
+                                        $middlewares[] = $item;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 继续检查父类
+                $currentClass = $currentClass->getParentClass();
+            }
+        } catch (Exception $e) {
+            // 忽略异常，避免影响命令执行
+        }
+
+        return $middlewares;
     }
 }
