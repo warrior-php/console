@@ -38,7 +38,6 @@ class RouteListCommand extends Command
 
     /**
      * 执行命令
-     *
      * 本方法在调用命令时被自动执行。
      * 其作用是收集所有已注册的路由信息并以表格形式输出。
      *
